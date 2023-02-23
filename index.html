@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat Room</title>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <ul id="users"></ul>
+    <form id="message-form">
+      <input type="text" id="message-input" />
+      <input type="text" id="room-input" />
+      <button type="submit">Send</button>
+    </form>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+    <script>
+      // 创建一个 Socket.IO 客户端，并连接到服务器
+      const socket = io("ws://localhost:3000");
+
+      // 当收到欢迎消息时，在页面上显示消息
+      socket.on('message', (data) => {
+        const messages = document.getElementById('messages');
+        const li = document.createElement('li');
+        li.style.color = data.color;
+        li.textContent = `${data.user}: ${data.text}`;
+        messages.appendChild(li);
+      });
+
+      // 当收到房间信息时，在页面上显示用户列表和消息
+      socket.on('roomData', (data) => {
+        const users = document.getElementById('users');
+        const messages = document.getElementById('messages');
+        users.innerHTML = '';
+        messages.innerHTML = '';
+        for (const id in data.users) {
+          if (Object.hasOwnProperty.call(data.users, id)) {
+            const user = data.users[id];
+            const li = document.createElement('li');
+            li.style.color = user.color;
+            li.textContent = user.username;
+            users.appendChild(li);
+          }
+        }
+        data.messages.forEach((message) => {
+          const li = document.createElement('li');
+          li.style.color = message.color;
+          li.textContent = `${message.user}: ${message.text}`;
+          messages.appendChild(li);
+        });
+      });
+
+      // 当表单提交时发送消息
+      const form = document.getElementById('message-form');
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const input = document.getElementById('message-input');
+        const message = input.value;
+        input.value = '';
+        socket.emit('message', {
+          room: document.getElementById('room-input').value,
+          text: message,
+        });
+      });
+
+      // 当窗口加载时，发送登录事件
+      window.onload = () => {
+        const room = prompt('Please enter a room name:');
+        const username = prompt('Please enter your username:');
+        const color = prompt('Please enter your color:');
+        socket.emit('login', {
+          room: room,
+          username: username,
+          color: color,
+        });
+        document.getElementById('room-input').value = room;
+      };
+    </script>
+  </body>
+</html>
